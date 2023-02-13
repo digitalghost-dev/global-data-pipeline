@@ -1,4 +1,4 @@
-# Weather Data Pipeline with PostgreSQL, Docker, and Looker Studio
+# Global Data Pipeline with PostgreSQL, Docker, Airflow and Looker Studio
 
 <div>
     <img alt="Version" src="https://img.shields.io/badge/Project Number-3-orange.svg?cacheSeconds=2592000" />
@@ -11,3 +11,5 @@
 ### Pipeline Flowchart
 
 ## Services Used
+
+* **Database:** [PostgreSQL](https://www.postgresql.org)
