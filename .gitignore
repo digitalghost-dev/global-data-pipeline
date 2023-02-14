@@ -1,6 +1,11 @@
 .streamlit/
 postgres-volume/
+logs/
+plugins/
+
+# Configuration files
 config.toml
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
