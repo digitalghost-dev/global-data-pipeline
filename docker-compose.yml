@@ -20,6 +20,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - /var/run/docker.sock:/var/run/docker.sock
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -29,6 +30,14 @@ x-airflow-common:
       condition: service_healthy
 
 services:
+  docker-proxy:
+    image: bobrik/socat
+    command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
+    ports:
+      - "2376:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   postgres:
     image: postgres:13
     ports:
@@ -42,7 +51,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "username"]
+      test: ["CMD", "pg_isready", "-U", "airflow", "-d", "global_data"]
       interval: 5s
       retries: 5
     restart: always
@@ -194,8 +203,8 @@ services:
       <<: *airflow-common-env
       _AIRFLOW_DB_UPGRADE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-username}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-password}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
