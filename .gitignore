@@ -6,6 +6,7 @@ plugins/
 # Configuration files
 config.toml
 .env
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
