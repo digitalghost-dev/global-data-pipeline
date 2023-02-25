@@ -15,7 +15,7 @@ USER = toml.load("./config.toml")
 PASSWORD = toml.load("./config.toml")
 NAME = toml.load("./config.toml")
 
-# Grabbing the population table from the database to the 100 most populous cities in the world.
+# Grabbing the population table from the database to the 50 most populous cities in the world.
 def database_call():
     engine = create_engine(f'postgresql+psycopg2://{USER["DATABASE_USER"]}:{PASSWORD["DATABASE_PASSWORD"]}@localhost/{NAME["DATABASE_NAME"]}')
     connection = engine.connect()
@@ -56,6 +56,7 @@ def api_call():
     
     return city_list, lat, lon
 
+# Creating a dataframe with the city name and its latitude and longitude.
 def create_dataframe():
     city_list, lat, lon,  = api_call()
 
@@ -65,18 +66,20 @@ def create_dataframe():
 
     dataframe = pd.DataFrame(zipped, columns = headers)
 
+    # Creating a new column with the latitude and longitude together, this is needed for Looker Studio to plot the coordinates.
     cols = ['lat', 'lon']
-    dataframe['location'] = dataframe[cols].astype(str).apply(','.join, axis=1)
+    dataframe['coordinates'] = dataframe[cols].astype(str).apply(','.join, axis=1)
 
     return dataframe
 
+# Loading the dataframe into the Postgres database.
 def database_load(DATABASE_URI):
     dataframe = create_dataframe()
 
     engine = create_engine(DATABASE_URI)
     
     # Sending dataframe to table in PostgreSQL.
-    dataframe.to_sql('location', engine, if_exists='replace', index=False)
+    dataframe.to_sql('city_coordinates', engine, if_exists='replace', index=False)
     print("Process completed!")
 
 database_load(f'postgresql+psycopg2://{USER["DATABASE_USER"]}:{PASSWORD["DATABASE_PASSWORD"]}@localhost/{NAME["DATABASE_NAME"]}')
