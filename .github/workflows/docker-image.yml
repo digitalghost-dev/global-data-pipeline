@@ -23,8 +23,8 @@ jobs:
     
     - name: Build Docker Image
       run: |
-        docker build . --file ./containers/population/Dockerfile --tag $DOCKER_USERNAME/global-data-pipeline:population
+        docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
         
     - name: Push Docker Image
       run: |
-        docker push $DOCKER_USERNAME/global-data-pipeline:population
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
