@@ -1,7 +1,8 @@
 # Webscraping a table with the 100 most populous cities in the world according to UN estimates.
+import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/tmp/keys/keys.json"
 
 # Importing needed libraries.
-import toml
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -11,10 +12,22 @@ from sqlalchemy import create_engine
 import time
 start_time = time.time()
 
-# Loading key-value pairs from config.toml
-USER = toml.load("./config.toml")
-PASSWORD = toml.load("./config.toml")
-NAME = toml.load("./config.toml")
+def gcp_secret():
+    # Import the Secret Manager client library.
+    from google.cloud import secretmanager
+
+    # Create the Secret Manager client.
+    client = secretmanager.SecretManagerServiceClient()
+
+    # Build the resource name of the secret version.
+    DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
+
+    # Access the secret version.
+    response = client.access_secret_version(request={"name": DATABASE_URL})
+
+    payload = response.payload.data.decode("UTF-8")
+
+    return payload
 
 # Scraping a Macrotrends page that has a table of cities ordered by population.
 def city_populations():
@@ -105,6 +118,7 @@ def load_population(DATABASE_URI):
     
     print("Process completed!")
 
-load_population(f'postgresql+psycopg2://{USER["DATABASE_USER"]}:{PASSWORD["DATABASE_PASSWORD"]}@localhost/{NAME["DATABASE_NAME"]}')
+payload = gcp_secret()
+load_population(payload)
 
 print(f'{(time.time() - start_time)} seconds')
