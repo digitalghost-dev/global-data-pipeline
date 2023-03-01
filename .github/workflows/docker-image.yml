@@ -23,8 +23,8 @@ jobs:
     
     - name: Build Docker Image
       run: |
-        docker build . --file ./containers/coordinates/Dockerfile --tag coordinates:1.0
+        docker build . --file ./containers/population/Dockerfile --tag $DOCKER_USERNAME/global-data-pipeline:population
         
     - name: Push Docker Image
       run: |
-        docker push $DOCKER_USERNAME/global-data-pipeline
+        docker push $DOCKER_USERNAME/global-data-pipeline:population
