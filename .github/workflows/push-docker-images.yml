@@ -21,8 +21,11 @@ jobs:
     
     - name: Build Docker Image
       run: |
+        docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
         docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
+
         
     - name: Push Docker Image
       run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
