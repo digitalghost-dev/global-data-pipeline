@@ -50,15 +50,12 @@ def fertility_rate():
         extra_rows = (fertility_dataframe.shape[0]) - 195
         fertility_dataframe = fertility_dataframe.drop(fertility_dataframe.tail(extra_rows).index)
         fertility_dataframe = fertility_dataframe.drop(fertility_dataframe.columns[3:], axis=1)
+        fertility_dataframe = fertility_dataframe.drop(fertility_dataframe.columns[0], axis=1)
 
         # Updating column names.
         fertility_dataframe.columns = range(fertility_dataframe.shape[1])
-        mapping = {0: 'rank', 1: 'country', 2: "fertility_rate"}
+        mapping = {0: 'country', 1: "fertility_rate"}
         fertility_dataframe = fertility_dataframe.rename(columns=mapping)
-
-        # Removing extra characters and digits from rank column.
-        fertility_dataframe['rank'] = fertility_dataframe['rank'].map(lambda x: str(x)[:3])
-        fertility_dataframe['rank'] = fertility_dataframe['rank'].str.strip()
 
         # Setting appropriate data types.
         fertility_dataframe['fertility_rate'] = fertility_dataframe['fertility_rate'].astype(float)
