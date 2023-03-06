@@ -1,4 +1,6 @@
 # Webscraping a table with the 100 most populous cities in the world according to UN estimates.
+
+# Running this command at the start of the script to authenticate with Google Cloud.
 import os
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/tmp/keys/keys.json"
 
@@ -12,6 +14,7 @@ from sqlalchemy import create_engine
 import time
 start_time = time.time()
 
+# Fetching API key from Google Cloud's Secret Manager.
 def gcp_secret():
     # Import the Secret Manager client library.
     from google.cloud import secretmanager
@@ -24,7 +27,6 @@ def gcp_secret():
 
     # Access the secret version.
     response = client.access_secret_version(request={"name": DATABASE_URL})
-
     payload = response.payload.data.decode("UTF-8")
 
     return payload
@@ -52,6 +54,11 @@ def city_populations():
 
         # Removing the extra rows.
         city_dataframe = city_dataframe.drop(city_dataframe.tail(extra_rows).index)
+
+        # Renaming column headers.
+        city_dataframe.columns = range(city_dataframe.shape[1])
+        mapping = {0: 'rank', 1: 'city', 2: 'country', 3: 'population'}
+        city_dataframe = city_dataframe.rename(columns=mapping)
 
         return city_dataframe
 
@@ -87,7 +94,7 @@ def country_populations():
 
         # Renaming column headers.
         country_dataframe.columns = range(country_dataframe.shape[1])
-        mapping = {0:'Rank', 1:'Country', 2:"Population"}
+        mapping = {0: 'rank', 1: 'country', 2: 'population'}
         country_dataframe = country_dataframe.rename(columns=mapping)
 
         # Removing the first row.
@@ -98,7 +105,7 @@ def country_populations():
     else:
         print("There was a connection error: " + str(response.status_code))
 
-# Loading both population dataframes into the Postgres database.
+# Loading dataframes into the Postgres database.
 def load_population(DATABASE_URI):
     city_dataframe = city_populations()
     country_dataframe = country_populations()
@@ -106,7 +113,7 @@ def load_population(DATABASE_URI):
     engine = create_engine(DATABASE_URI)
 
     dataframes = [city_dataframe, country_dataframe]
-    tables = ['city_populations', 'country_populations']
+    tables = ['gd.city_pop', 'gd.country_pop']
     
     # Looping through to upload both dataframes.
     count = 0
