@@ -14,7 +14,7 @@ from sqlalchemy import create_engine, text
 import time
 start_time = time.time()
 
-# Fetching API key from Google Cloud's Secret Manager.
+# Fetching Database URI from Google Cloud's Secret Manager.
 def gcp_database_secret():
     client = secretmanager.SecretManagerServiceClient()
     DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
@@ -85,14 +85,14 @@ def create_dataframe():
 
     return coordinates_dataframe 
 
-# # Loading the dataframe into the Postgres database.
+# Loading the dataframe into the Postgres database.
 def load_coordinates(DATABASE_URI):
-    dataframe = create_dataframe()
+    coordinates_dataframe = create_dataframe()
 
     engine = create_engine(DATABASE_URI)
     
     # Sending dataframe to table in PostgreSQL.
-    dataframe.to_sql('gd.city_coordinates', engine, if_exists='replace', index=False)
+    coordinates_dataframe.to_sql('gd.city_coordinates', engine, if_exists='replace', index=False)
     print("Process completed!")
 
 payload_db = gcp_database_secret()

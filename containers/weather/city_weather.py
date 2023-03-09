@@ -1,79 +1,100 @@
-# Using the API Ninjas Weather API, this file is responsible for building the weather table.
+# Using the WeatherStack weather API, this file is responsible for building the weather table.
+
+# Running this command at the start of the script to authenticate with Google Cloud.
+import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/tmp/keys/keys.json"
 
 # Importing needed libraries.
-import toml
 import requests
 import pandas as pd
+from google.cloud import secretmanager
 from sqlalchemy import create_engine, text
 
+# Timing how long the script takes to run.
 import time
 start_time = time.time()
 
-# Loading key-value pairs from config.toml
-USER = toml.load("./config.toml")
-PASSWORD = toml.load("./config.toml")
-NAME = toml.load("./config.toml")
+# Fetching API key from Google Cloud's Secret Manager.
+def gcp_database_secret():
+    client = secretmanager.SecretManagerServiceClient()
+    DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
+    response = client.access_secret_version(request={"name": DATABASE_URL})
+    payload_db = response.payload.data.decode("UTF-8")
 
-# Grabbing the population table from the database to the 100 most populous cities in the world.
+    return payload_db
+
+# Fetching API key from Google Cloud's Secret Manager.
+def gcp_weatherstack_secret():
+    client = secretmanager.SecretManagerServiceClient()
+    WEATHERSTACK_KEY = "projects/463690670206/secrets/weatherstack-api/versions/1"
+    response = client.access_secret_version(request={"name": WEATHERSTACK_KEY})
+    payload_key = response.payload.data.decode("UTF-8")
+
+    return payload_key
+
+# Grabbing the population table from the database to the 50 most populous cities in the world.
 def database_call():
-    engine = create_engine(f'postgresql+psycopg2://{USER["DATABASE_USER"]}:{PASSWORD["DATABASE_PASSWORD"]}@localhost/{NAME["DATABASE_NAME"]}')
-    connection = engine.connect()
+    payload_db = gcp_database_secret()
 
-    query = text("SELECT population.\"City\" FROM population")
-    conn = connection.execute(query)
-    response = conn.all()
+    engine = create_engine(payload_db)
 
-    response_list = (response[0:25])
-    clean_list = []
+    with engine.begin() as conn:
+        query = text('SELECT * FROM "gd.city_pop"')
+        city_population_dataframe = pd.read_sql_query(query, conn)
 
-    for city in response_list:
-        city = str(city).strip("'(),")
-        clean_list.append(city)
+    city_list = city_population_dataframe['city'].tolist()
 
-    return clean_list
+    return city_list
 
+# Calling the OpenWeatherMap Geocoding API to get the latitude and longitude for each city from the city list.
 def api_call():
-    clean_list = database_call()
+    city_list = database_call()
+    payload_key = gcp_weatherstack_secret()
 
-    # Loading API key.
-    KEY = toml.load("./config.toml")
-    key = KEY["API_NINJAS_KEY"]
-
-    max_temp = []
+    current_temp = []
+    wind_speed = []
+    precip = []
+    humidity = []
 
     count = 0
-    while count < 25:
-        api_url = f'https://api.api-ninjas.com/v1/weather?city={clean_list[count]}'
-        response = requests.get(api_url, headers={'X-Api-Key': key})
+    while count < 50:
+        url = f'https://api.weatherstack.com/current?access_key={payload_key}&query={city_list[count]}'
+        r = requests.get(url)
 
-        max_temp.append(response.json()["max_temp"])
+        current_temp.append(r.json()["current"]["temperature"])
+        wind_speed.append(r.json()["current"]["wind_speed"])
+        precip.append(r.json()["current"]["precip"])
+        humidity.append(r.json()["current"]["humidity"])
 
         count += 1
-    
-    return clean_list, max_temp
 
+    # lat = [round(num, 4) for num in lat_temp]
+    
+    return city_list, current_temp, wind_speed, precip, humidity
+
+# Creating a dataframe with the city name and its latitude and longitude.
 def create_dataframe():
-    clean_list, max_temp = api_call()
+    city_list, current_temp, wind_speed, precip, humidity = api_call()
 
     # Setting the headers then zipping the lists to create a dataframe.
-    headers = ['city', 'max_temp']
-    zipped = list(zip(clean_list, max_temp))
+    headers = ['city', 'current_temp', 'wind_speed', 'precip', 'humidity']
+    zipped = list(zip(city_list, current_temp, wind_speed, precip, humidity))
 
-    dataframe = pd.DataFrame(zipped, columns = headers)
+    weather_dataframe = pd.DataFrame(zipped, columns = headers)
 
-    return dataframe
+    return weather_dataframe
 
-def database_load(DATABASE_URI):
-    dataframe = create_dataframe()
+# Loading the dataframe into the Postgres database.
+def load_weather(DATABASE_URI):
+    weather_dataframe = create_dataframe()
 
     engine = create_engine(DATABASE_URI)
     
     # Sending dataframe to table in PostgreSQL.
-    dataframe.to_sql('weather', engine, if_exists='replace', index=False)
+    weather_dataframe.to_sql('gd.city_weather', engine, if_exists='replace', index=False)
     print("Process completed!")
 
-database_load(f'postgresql+psycopg2://{USER["DATABASE_USER"]}:{PASSWORD["DATABASE_PASSWORD"]}@localhost/{NAME["DATABASE_NAME"]}')
+payload_db = gcp_database_secret()
+load_weather(payload_db)
 
 print(f'{(time.time() - start_time)} seconds')
-
-# °F = (°C × 9/5) + 32

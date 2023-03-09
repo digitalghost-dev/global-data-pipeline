@@ -24,10 +24,12 @@ jobs:
         docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
         docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
         docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
+        docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
 
         
     - name: Push Docker Image
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
