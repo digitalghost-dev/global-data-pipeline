@@ -1,0 +1,6 @@
+*.json
+*.toml
+logs/
+plugins/
+postgres-volume/
+zjunk/
