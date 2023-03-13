@@ -21,7 +21,7 @@ jobs:
     
     - name: Build Docker Image
       run: |
-      docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
+        docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
         docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
         docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
         docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
