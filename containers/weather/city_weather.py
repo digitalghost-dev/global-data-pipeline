@@ -14,7 +14,7 @@ from sqlalchemy import create_engine, text
 import time
 start_time = time.time()
 
-# Fetching API key from Google Cloud's Secret Manager.
+# Fetching Database URI from Google Cloud's Secret Manager.
 def gcp_database_secret():
     client = secretmanager.SecretManagerServiceClient()
     DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
@@ -32,7 +32,7 @@ def gcp_weatherstack_secret():
 
     return payload_key
 
-# Grabbing the population table from the database to the 50 most populous cities in the world.
+# Fetching the population table from the database.
 def database_call():
     payload_db = gcp_database_secret()
 
@@ -51,6 +51,7 @@ def api_call():
     city_list = database_call()
     payload_key = gcp_weatherstack_secret()
 
+    # Empty lists to filled with API data.
     current_temp = []
     wind_speed = []
     precip = []

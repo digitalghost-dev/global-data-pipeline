@@ -32,7 +32,7 @@ def gcp_openweathermap_secret():
 
     return payload_key
 
-# Grabbing the population table from the database to the 50 most populous cities in the world.
+# Fetching the population table from the database.
 def database_call():
     payload_db = gcp_database_secret()
 

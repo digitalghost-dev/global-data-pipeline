@@ -9,27 +9,20 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
+from google.cloud import secretmanager
 
 # Timing how long the script takes to run.
 import time
 start_time = time.time()
 
-# Fetching API key from Google Cloud's Secret Manager.
-def gcp_secret():
-    # Import the Secret Manager client library.
-    from google.cloud import secretmanager
-
-    # Create the Secret Manager client.
+# Fetching Database URI from Google Cloud's Secret Manager.
+def gcp_database_secret():
     client = secretmanager.SecretManagerServiceClient()
-
-    # Build the resource name of the secret version.
     DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
-
-    # Access the secret version.
     response = client.access_secret_version(request={"name": DATABASE_URL})
-    payload = response.payload.data.decode("UTF-8")
+    payload_db = response.payload.data.decode("UTF-8")
 
-    return payload
+    return payload_db
 
 # Scraping a Macrotrends page that has a table of cities ordered by population.
 def city_populations():
@@ -59,6 +52,9 @@ def city_populations():
         city_dataframe.columns = range(city_dataframe.shape[1])
         mapping = {0: 'rank', 1: 'city', 2: 'country', 3: 'population'}
         city_dataframe = city_dataframe.rename(columns=mapping)
+
+        # Removing commas and characters after commas where type == 'str'.
+        city_dataframe = city_dataframe.applymap(lambda x: x.split(",")[0] if isinstance(x, str) else x)
 
         return city_dataframe
 
@@ -125,7 +121,7 @@ def load_population(DATABASE_URI):
     
     print("Process completed!")
 
-payload = gcp_secret()
+payload = gcp_database_secret()
 load_population(payload)
 
 print(f'{(time.time() - start_time)} seconds')
