@@ -2,7 +2,7 @@ version: '3'
 
 x-airflow-common:
   &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.5.1}
+  image: ${AIRFLOW_IMAGE_NAME:-custom_airflow:1.0}
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
