@@ -6,30 +6,24 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/tmp/keys/keys.json"
 
 # Importing needed libraries.
 import requests
+import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
+from google.cloud import secretmanager
 
 # Timing how long the script takes to run.
 import time
 start_time = time.time()
 
-# Fetching API key from Google Cloud's Secret Manager.
-def gcp_secret():
-    # Import the Secret Manager client library.
-    from google.cloud import secretmanager
-
-    # Create the Secret Manager client.
+# Fetching Database URI from Google Cloud's Secret Manager.
+def gcp_database_secret():
     client = secretmanager.SecretManagerServiceClient()
-
-    # Build the resource name of the secret version.
     DATABASE_URL = "projects/463690670206/secrets/DATABASE_URL/versions/1"
-
-    # Access the secret version.
     response = client.access_secret_version(request={"name": DATABASE_URL})
-    payload = response.payload.data.decode("UTF-8")
+    payload_db = response.payload.data.decode("UTF-8")
 
-    return payload
+    return payload_db
 
 # This function builds the fertility rates table.
 def fertility_rate():
@@ -67,7 +61,7 @@ def fertility_rate():
         return fertility_dataframe
 
     else:
-        print("Couldn't build Fertility Rates table. Error: " + str(response.status_code))
+        print("Couldn't build fertility rates table. Error: " + str(response.status_code))
 
 # This function builds the unemployment rates table.
 def unemployment_rate():
@@ -102,7 +96,7 @@ def unemployment_rate():
         return unemployment_dataframe
 
     else:
-        print("Couldn't build Unemployment Rates table. Error: " + str(response.status_code))
+        print("Couldn't build unemployment rates table. Error: " + str(response.status_code))
 
 # This function builds the homicide rates table.
 def homicide_rate():
@@ -140,7 +134,7 @@ def homicide_rate():
         return homicide_dataframe
 
     else:
-        print("Couldn't build Homicide Rates table. Error: " + str(response.status_code))
+        print("Couldn't build homicide rates table. Error: " + str(response.status_code))
 
 # This function builds the obesity rates table.
 def obesity_rate():
@@ -168,12 +162,12 @@ def obesity_rate():
         
         return obesity_dataframe
     else:
-        print("Couldn't build Homicide Rates table. Error: " + str(response.status_code))
+        print("Couldn't build obesity rates table. Error: " + str(response.status_code))
 
-# This function builds the obesity rates table.
-def nominal_gdp_per_capita():
+# This function builds the human_development_index table.
+def human_development_index():
 
-    url = "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)_per_capita"
+    url = "https://en.wikipedia.org/wiki/List_of_countries_by_Human_Development_Index"
     response = requests.get(url)
 
     # Checking if url returns a <200> status code.
@@ -181,30 +175,29 @@ def nominal_gdp_per_capita():
         data = requests.get(url).text
         # Creating BeautifulSoup object.
         soup = BeautifulSoup(data, 'html.parser')
-        table = soup.find('table', class_='static-row-numbers')
+        table = soup.find('table', class_='sortable')
 
         # Using Pandas to read the HTML table.
-        nominal_gdp_dataframe = pd.read_html(str(table))[0]
+        hdi_dataframe = pd.read_html(str(table))[0]
 
         # Dropping extra rows and columns.
-        nominal_gdp_dataframe = nominal_gdp_dataframe.drop(index=0)
-        nominal_gdp_dataframe = nominal_gdp_dataframe.drop(nominal_gdp_dataframe.columns[1:6], axis=1)
-        nominal_gdp_dataframe = nominal_gdp_dataframe.drop(nominal_gdp_dataframe.columns[2], axis=1)
+        hdi_dataframe = hdi_dataframe.drop(index=0)
+        hdi_dataframe = hdi_dataframe.drop(hdi_dataframe.columns[0:2], axis=1)
 
         # Updating column names.
-        nominal_gdp_dataframe.columns = range(nominal_gdp_dataframe.shape[1])
-        mapping = {0: 'country', 1: 'estimate'}
-        nominal_gdp_dataframe = nominal_gdp_dataframe.rename(columns=mapping)
+        hdi_dataframe.columns = range(hdi_dataframe.shape[1])
+        mapping = {0: 'country', 1: 'hdi', 2: 'hdi_growth'}
+        hdi_dataframe = hdi_dataframe.rename(columns=mapping)
 
-        # Removing extra characters from country column.
-        nominal_gdp_dataframe['country'] = nominal_gdp_dataframe['country'].str.replace(r'\*.*', '', regex=True)
-        nominal_gdp_dataframe['country'] = nominal_gdp_dataframe['country'].str.strip()
-        nominal_gdp_dataframe['estimate'] = nominal_gdp_dataframe['estimate'].str.strip()
+        # Removing % from hdi_growth column and replacing non-numbers with NaN.
+        hdi_dataframe['hdi_growth'] = hdi_dataframe['hdi_growth'].str.replace('%', '')
+        hdi_dataframe = hdi_dataframe.replace('NA\[a\]', np.nan, regex=True)
+        hdi_dataframe['hdi_growth'] = hdi_dataframe['hdi_growth'].astype(float)
         
-        return nominal_gdp_dataframe
+        return hdi_dataframe
 
     else:
-        print("Couldn't build Homicide Rates table. Error: " + str(response.status_code))
+        print("Couldn't build hdi table. Error: " + str(response.status_code))
 
 # Loading dataframes into the Postgres database.
 def load_population(DATABASE_URI):
@@ -212,12 +205,12 @@ def load_population(DATABASE_URI):
     unemployment_dataframe = unemployment_rate()
     homicide_dataframe = homicide_rate()
     obesity_dataframe = obesity_rate()
-    nominal_gdp_dataframe = nominal_gdp_per_capita()
+    hdi_dataframe = human_development_index()
 
     engine = create_engine(DATABASE_URI)
 
-    dataframes = [fertility_dataframe, unemployment_dataframe, homicide_dataframe, obesity_dataframe, nominal_gdp_dataframe]
-    tables = ['gd.fertility', 'gd.unemployment', 'gd.homicide', 'gd.obesity', 'gd.nominal_gdp']
+    dataframes = [fertility_dataframe, unemployment_dataframe, homicide_dataframe, obesity_dataframe, hdi_dataframe]
+    tables = ['gd.fertility', 'gd.unemployment', 'gd.homicide', 'gd.obesity', 'gd.hdi']
     
     # Looping through to upload both dataframes.
     count = 0
@@ -229,7 +222,7 @@ def load_population(DATABASE_URI):
     
     print("Process completed! " + str(os.path.basename(__file__)) + " " + "finished without errors.")
 
-payload = gcp_secret()
-load_population(payload)
+payload_db = gcp_database_secret()
+load_population(payload_db)
 
 print(f'{(time.time() - start_time)} seconds')
