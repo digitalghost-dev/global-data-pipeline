@@ -1,4 +1,4 @@
-# Webscraping a table with the 100 most populous cities in the world according to UN estimates.
+# Webscraping a table with the 100 most populated cities in the world according to UN estimates.
 
 # Running this command at the start of the script to authenticate with Google Cloud.
 import os
