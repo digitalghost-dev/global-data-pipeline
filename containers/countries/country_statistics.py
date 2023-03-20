@@ -63,41 +63,6 @@ def fertility_rate():
     else:
         print("Couldn't build fertility rates table. Error: " + str(response.status_code))
 
-# This function builds the unemployment rates table.
-def unemployment_rate():
-    url = 'https://en.wikipedia.org/wiki/List_of_sovereign_states_by_unemployment_rate'
-    response = requests.get(url)
-
-    # Checking if url returns a <200> status code.
-    if response.status_code == requests.codes.ok:
-        data = requests.get(url).text
-        # Creating BeautifulSoup object.
-        soup = BeautifulSoup(data, 'html.parser')
-        table = soup.find('table', class_='wikitable')
-
-        pd.set_option("display.max_rows", 223)
-
-        # Using Pandas to read the HTML table.
-        unemployment_dataframe = pd.read_html(str(table))[0]
-        
-        # Dropping extra columns.
-        unemployment_dataframe = unemployment_dataframe.drop(unemployment_dataframe.columns[3:], axis=1)
-        
-        # Updating column names.
-        unemployment_dataframe.columns = range(unemployment_dataframe.shape[1])
-        mapping = {0: 'country', 1: 'unemployment_rate', 2: 'last_updated'}
-        unemployment_dataframe = unemployment_dataframe.rename(columns=mapping)
-
-        # Removing extra characters from country column.
-        unemployment_dataframe['country'] = unemployment_dataframe['country'].str.replace(r'\*.*', '', regex=True)
-        unemployment_dataframe['country'] = unemployment_dataframe['country'].str.strip()
-        unemployment_dataframe['last_updated'] = unemployment_dataframe['last_updated'].str[-4:]
-
-        return unemployment_dataframe
-
-    else:
-        print("Couldn't build unemployment rates table. Error: " + str(response.status_code))
-
 # This function builds the homicide rates table.
 def homicide_rate():
 
@@ -136,34 +101,6 @@ def homicide_rate():
     else:
         print("Couldn't build homicide rates table. Error: " + str(response.status_code))
 
-# This function builds the obesity rates table.
-def obesity_rate():
-
-    url = "https://en.wikipedia.org/wiki/List_of_countries_by_obesity_rate"
-    response = requests.get(url)
-
-    # Checking if url returns a <200> status code.
-    if response.status_code == requests.codes.ok:
-        data = requests.get(url).text
-        # Creating BeautifulSoup object.
-        soup = BeautifulSoup(data, 'html.parser')
-        table = soup.find('table', class_='static-row-numbers')
-
-        # Using Pandas to read the HTML table.
-        obesity_dataframe = pd.read_html(str(table))[0]
-
-        # Updating column names.
-        obesity_dataframe.columns = range(obesity_dataframe.shape[1])
-        mapping = {0: 'country', 1: 'obesity_rate_percentage'}
-        obesity_dataframe = obesity_dataframe.rename(columns=mapping)
-
-        # Removing whitespace.
-        obesity_dataframe['country'] = obesity_dataframe['country'].str.strip()
-        
-        return obesity_dataframe
-    else:
-        print("Couldn't build obesity rates table. Error: " + str(response.status_code))
-
 # This function builds the human_development_index table.
 def human_development_index():
 
@@ -199,8 +136,71 @@ def human_development_index():
     else:
         print("Couldn't build hdi table. Error: " + str(response.status_code))
 
+# This function builds the obesity rates table.
+def obesity_rate():
+
+    url = "https://en.wikipedia.org/wiki/List_of_countries_by_obesity_rate"
+    response = requests.get(url)
+
+    # Checking if url returns a <200> status code.
+    if response.status_code == requests.codes.ok:
+        data = requests.get(url).text
+        # Creating BeautifulSoup object.
+        soup = BeautifulSoup(data, 'html.parser')
+        table = soup.find('table', class_='static-row-numbers')
+
+        # Using Pandas to read the HTML table.
+        obesity_dataframe = pd.read_html(str(table))[0]
+
+        # Updating column names.
+        obesity_dataframe.columns = range(obesity_dataframe.shape[1])
+        mapping = {0: 'country', 1: 'obesity_rate_percentage'}
+        obesity_dataframe = obesity_dataframe.rename(columns=mapping)
+
+        # Removing whitespace.
+        obesity_dataframe['country'] = obesity_dataframe['country'].str.strip()
+        
+        return obesity_dataframe
+    else:
+        print("Couldn't build obesity rates table. Error: " + str(response.status_code))
+    
+# This function builds the unemployment rates table.
+def unemployment_rate():
+    url = 'https://en.wikipedia.org/wiki/List_of_sovereign_states_by_unemployment_rate'
+    response = requests.get(url)
+
+    # Checking if url returns a <200> status code.
+    if response.status_code == requests.codes.ok:
+        data = requests.get(url).text
+        # Creating BeautifulSoup object.
+        soup = BeautifulSoup(data, 'html.parser')
+        table = soup.find('table', class_='wikitable')
+
+        pd.set_option("display.max_rows", 223)
+
+        # Using Pandas to read the HTML table.
+        unemployment_dataframe = pd.read_html(str(table))[0]
+        
+        # Dropping extra columns.
+        unemployment_dataframe = unemployment_dataframe.drop(unemployment_dataframe.columns[3:], axis=1)
+        
+        # Updating column names.
+        unemployment_dataframe.columns = range(unemployment_dataframe.shape[1])
+        mapping = {0: 'country', 1: 'unemployment_rate', 2: 'last_updated'}
+        unemployment_dataframe = unemployment_dataframe.rename(columns=mapping)
+
+        # Removing extra characters from country column.
+        unemployment_dataframe['country'] = unemployment_dataframe['country'].str.replace(r'\*.*', '', regex=True)
+        unemployment_dataframe['country'] = unemployment_dataframe['country'].str.strip()
+        unemployment_dataframe['last_updated'] = unemployment_dataframe['last_updated'].str[-4:]
+
+        return unemployment_dataframe
+
+    else:
+        print("Couldn't build unemployment rates table. Error: " + str(response.status_code))
+
 # Loading dataframes into the Postgres database.
-def load_population(DATABASE_URI):
+def load_dataframes(DATABASE_URI):
     fertility_dataframe = fertility_rate()
     unemployment_dataframe = unemployment_rate()
     homicide_dataframe = homicide_rate()
@@ -223,6 +223,6 @@ def load_population(DATABASE_URI):
     print("Process completed! " + str(os.path.basename(__file__)) + " " + "finished without errors.")
 
 payload_db = gcp_database_secret()
-load_population(payload_db)
+load_dataframes(payload_db)
 
 print(f'{(time.time() - start_time)} seconds')
