@@ -1,10 +1,12 @@
-.streamlit/
+# Docker
 postgres-volume/
+
+# Airflow
 logs/
 plugins/
 
 # Configuration files
-config.toml
+config*
 .env
 *.json
 
@@ -36,3 +38,6 @@ pip-delete-this-directory.txt
 
 # Sphinx documentation
 docs/_build/
+
+# macOS
+.DS_Store
