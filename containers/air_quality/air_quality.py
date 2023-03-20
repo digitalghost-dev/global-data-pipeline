@@ -1,4 +1,4 @@
-# Using the AQICN API, this file is responsible for building the air_quality table.
+# Using the OpenWeatherMap API, this file is responsible for building the air_quality table.
 
 # Running this command at the start of the script to authenticate with Google Cloud.
 import os
@@ -82,7 +82,7 @@ def create_dataframe():
     city_list, co, no2, o3, so2, pm2_5, pm10 = api_call()
 
     # Setting the headers then zipping the lists to create a dataframe.
-    headers = ['city', 'CO', 'NO2', 'O3', 'SO2', 'PM2.5', 'PM10']
+    headers = ['city', 'CO', 'NO2', 'O3', 'SO2', 'PM2_5', 'PM10']
     zipped = list(zip(city_list, co, no2, o3, so2, pm2_5, pm10))
 
     air_quality_dataframe = pd.DataFrame(zipped, columns = headers)
