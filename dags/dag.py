@@ -1,15 +1,42 @@
 from airflow import DAG
+from config import DATABASE_URL
 from datetime import datetime, timedelta
 
 from docker.types import Mount
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.google.cloud.transfers.postgres_to_gcs import PostgresToGCSOperator
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
-from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.discord.operators.discord_webhook import DiscordWebhookOperator
 
 bucket = 'global-data-storage-bucket'
 table = 'cloud-data-infrastructure.global_data_dataset.'
+
+def weather():
+    import pandas as pd
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(DATABASE_URL)
+
+    with engine.begin() as conn:
+        query = text(
+            """
+            SELECT table1.city, current_temp
+            FROM "gd.city_weather" AS table1
+            INNER JOIN (
+                SELECT MAX(current_temp) AS max_current_temp
+                FROM "gd.city_weather"
+            ) AS table2
+            ON table1.current_temp = table2.max_current_temp
+            """
+        )
+        df = pd.read_sql_query(query, conn)
+
+    hottest_city_text = "The current hottest ciy is " + str(df.iloc[0,0]) + " where it's currently " + str(df.iloc[0,1]) + " degress celsius."
+
+    return hottest_city_text
+
+hottest_city_text = weather()
 
 default_args = {
     'owner': 'Airflow',
@@ -21,18 +48,18 @@ default_args = {
 }
 
 # Discord notification
-with DAG("discord_alert", default_args=default_args, schedule_interval='@daily', catchup=False) as dag:
+with DAG("discord_alert", default_args=default_args, schedule_interval='0 */4 * * *', catchup=False) as dag:
 
     discord_task = DiscordWebhookOperator (
         task_id="discord_message",
         http_conn_id="discord",
-        message="Hello from Airflow!"
+        message=hottest_city_text
     )
 
 discord_task
 
 # coordinates table
-with DAG("city_coordinates", default_args=default_args, schedule_interval='*/20 * * * *', catchup=False) as dag:
+with DAG("city_coordinates", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
 
     task_a = DockerOperator (
         task_id="1-run_docker_container",
@@ -80,8 +107,57 @@ with DAG("city_coordinates", default_args=default_args, schedule_interval='*/20 
 
 task_a >> task_b >> task_c
 
+# population table
+with DAG("population", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
+
+    task_a = DockerOperator (
+        task_id="task_a",
+        image='digitalghostdev/global-data-pipeline:population',
+        command='python3 population.py',
+        docker_url='tcp://docker-proxy:2375',
+        network_mode='host',
+        mounts=[
+            Mount(
+                source='/tmp/keys/keys.json',
+                target='/tmp/keys/keys.json',
+                type='bind'
+            )
+        ]
+    )
+
+    task_b = PostgresToGCSOperator (
+        task_id="postgres_to_cloud_storage",
+        postgres_conn_id='postgres_default',
+        sql='SELECT * FROM "gd.city_pop";',
+        bucket=bucket,
+        filename='city_pop.csv',
+        export_format='csv',
+        gzip=False,
+        use_server_side_cursor=False,
+    )
+
+    task_c = GCSToBigQueryOperator (
+        task_id="cloud_storage_to_bigquery",
+        gcp_conn_id='google_cloud_default',
+        bucket=bucket,
+        source_objects=['city_pop.csv'],
+        source_format='CSV',
+        destination_project_dataset_table=(table + "city_pop"),
+        schema_fields = [
+            {'name': 'rank', 'type': 'INTEGER'},
+            {'name': 'city', 'type': 'STRING'},
+            {'name': 'country', 'type': 'STRING'},
+            {'name': 'population', 'type': 'BIGNUMERIC'},
+        ],
+        create_disposition='CREATE_IF_NEEDED',
+        write_disposition='WRITE_TRUNCATE',
+        skip_leading_rows=1,
+    )
+
+task_a >> task_b >> task_c
+
 # country statistics table
-with DAG("country_statistics", default_args=default_args, schedule_interval='@monthly', catchup=False) as dag:
+with DAG("country_statistics", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
 
     task_a = DockerOperator (
         task_id="task_a",
@@ -250,6 +326,58 @@ task_a >> task_f >> task_g
 task_a >> task_h >> task_i
 task_a >> task_j >> task_k
 
+# air_quality table
+with DAG("air_quality", default_args=default_args, schedule_interval='@hourly', catchup=False) as dag:
+    
+    task_a = DockerOperator (
+        task_id="run_docker_container",
+        image='digitalghostdev/global-data-pipeline:air_quality',
+        command='python3 air_quality.py',
+        docker_url='tcp://docker-proxy:2375',
+        network_mode='host',
+        mounts=[
+            Mount(
+                source='/tmp/keys/keys.json',
+                target='/tmp/keys/keys.json',
+                type='bind'
+            )
+        ]
+    )
+
+    task_b = PostgresToGCSOperator (
+        task_id="postgres_to_cloud_storage",
+        postgres_conn_id='postgres_default',
+        sql='SELECT * FROM "gd.air_quality";',
+        bucket=bucket,
+        filename='air_quality.csv',
+        export_format='csv',
+        gzip=False,
+        use_server_side_cursor=False,
+    )
+
+    task_c = GCSToBigQueryOperator (
+        task_id="cloud_storage_to_bigquery",
+        gcp_conn_id='google_cloud_default',
+        bucket=bucket,
+        source_objects=['air_quality.csv'],
+        source_format='CSV',
+        destination_project_dataset_table=(table + "air_quality"),
+        schema_fields = [
+            {'name': 'city', 'type': 'STRING'},
+            {'name': 'CO', 'type': 'FLOAT'},
+            {'name': 'NO2', 'type': 'FLOAT'},
+            {'name': 'O3', 'type': 'FLOAT'},
+            {'name': 'SO2', 'type': 'FLOAT'},
+            {'name': 'PM2_5', 'type': 'FLOAT'},
+            {'name': 'PM10', 'type': 'FLOAT'},
+        ],
+        create_disposition='CREATE_IF_NEEDED',
+        write_disposition='WRITE_TRUNCATE',
+        skip_leading_rows=1,
+    )
+
+task_a >> task_b >> task_c
+
 # weather table
 with DAG("city_weather", default_args=default_args, schedule_interval='@hourly', catchup=False) as dag:
 
@@ -292,55 +420,6 @@ with DAG("city_weather", default_args=default_args, schedule_interval='@hourly',
             {'name': 'wind_speed', 'type': 'INTEGER'},
             {'name': 'precip', 'type': 'FLOAT'},
             {'name': 'humidity', 'type': 'INTEGER'},
-        ],
-        create_disposition='CREATE_IF_NEEDED',
-        write_disposition='WRITE_TRUNCATE',
-        skip_leading_rows=1,
-    )
-
-task_a >> task_b >> task_c
-
-# population table
-with DAG("population", default_args=default_args, schedule_interval='@hourly', catchup=False) as dag:
-
-    task_a = DockerOperator (
-        task_id="task_a",
-        image='digitalghostdev/global-data-pipeline:population',
-        command='python3 population.py',
-        docker_url='tcp://docker-proxy:2375',
-        network_mode='host',
-        mounts=[
-            Mount(
-                source='/tmp/keys/keys.json',
-                target='/tmp/keys/keys.json',
-                type='bind'
-            )
-        ]
-    )
-
-    task_b = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage",
-        postgres_conn_id='postgres_default',
-        sql='SELECT * FROM "gd.city_pop";',
-        bucket=bucket,
-        filename='city_pop.csv',
-        export_format='csv',
-        gzip=False,
-        use_server_side_cursor=False,
-    )
-
-    task_c = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery",
-        gcp_conn_id='google_cloud_default',
-        bucket=bucket,
-        source_objects=['city_pop.csv'],
-        source_format='CSV',
-        destination_project_dataset_table=(table + "city_pop"),
-        schema_fields = [
-            {'name': 'rank', 'type': 'INTEGER'},
-            {'name': 'city', 'type': 'STRING'},
-            {'name': 'country', 'type': 'STRING'},
-            {'name': 'population', 'type': 'BIGNUMERIC'},
         ],
         create_disposition='CREATE_IF_NEEDED',
         write_disposition='WRITE_TRUNCATE',
