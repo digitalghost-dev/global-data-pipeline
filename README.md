@@ -61,7 +61,7 @@ CI/CD is setup with [GitHub Actions](https://github.com/features/actions).
 * **Google Cloud Services:**
     * **Data Warehouse:** [BigQuery](https://cloud.google.com/bigquery/)
     * **Object Storage:** [Cloud Storage](https://cloud.google.com/storage)
-    * **Visualization:** [Looker Studio](https://lookerstudio.google.com)
 * **Notifications:** [Discord](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 * **Orchestration:** [Airflow](https://airflow.apache.org)
 * **Relational Database:** [PostgreSQL](https://www.postgresql.org)
+* **Visualization:** [Looker Studio](https://lookerstudio.google.com)
