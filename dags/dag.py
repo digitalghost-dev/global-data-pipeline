@@ -126,7 +126,7 @@ with DAG("population", default_args=default_args, schedule_interval='@weekly', c
     )
 
     task_b = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage",
+        task_id="postgres_to_cloud_storage_city_pop",
         postgres_conn_id='postgres_default',
         sql='SELECT * FROM "gd.city_pop";',
         bucket=bucket,
@@ -137,7 +137,7 @@ with DAG("population", default_args=default_args, schedule_interval='@weekly', c
     )
 
     task_c = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery",
+        task_id="cloud_storage_to_bigquery_city_pop",
         gcp_conn_id='google_cloud_default',
         bucket=bucket,
         source_objects=['city_pop.csv'],
@@ -154,7 +154,36 @@ with DAG("population", default_args=default_args, schedule_interval='@weekly', c
         skip_leading_rows=1,
     )
 
+    task_d = PostgresToGCSOperator (
+        task_id="postgres_to_cloud_storage_country_pop",
+        postgres_conn_id='postgres_default',
+        sql='SELECT * FROM "gd.country_pop";',
+        bucket=bucket,
+        filename='country_pop.csv',
+        export_format='csv',
+        gzip=False,
+        use_server_side_cursor=False,
+    )
+
+    task_e = GCSToBigQueryOperator (
+        task_id="cloud_storage_to_bigquery_country_pop",
+        gcp_conn_id='google_cloud_default',
+        bucket=bucket,
+        source_objects=['country_pop.csv'],
+        source_format='CSV',
+        destination_project_dataset_table=(table + "country_pop"),
+        schema_fields = [
+            {'name': 'rank', 'type': 'INTEGER'},
+            {'name': 'country', 'type': 'STRING'},
+            {'name': 'population', 'type': 'BIGNUMERIC'},
+        ],
+        create_disposition='CREATE_IF_NEEDED',
+        write_disposition='WRITE_TRUNCATE',
+        skip_leading_rows=1,
+    )
+
 task_a >> task_b >> task_c
+task_a >> task_d >> task_e
 
 # country statistics table
 with DAG("country_statistics", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
