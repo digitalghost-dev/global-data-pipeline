@@ -66,6 +66,11 @@ def api_call():
 
     lat = [round(num, 4) for num in lat_temp]
     lon = [round(num, 4) for num in lon_temp]
+
+    # Find the city Surat in the dataframe and update its latitude and longitude. 
+    # This is needed because the API is returning the wrong coordinates for Surat.
+    lat[city_list.index('Surat')] = 21.1702
+    lon[city_list.index('Surat')] = 72.8311
     
     return city_list, lat, lon
 
