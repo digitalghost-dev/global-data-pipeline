@@ -34,7 +34,7 @@ jobs:
     - name: Scan image
       uses: anchore/scan-action@v3
       with:
-        image: "global-data-pipeline:air_quality"
+        image: "${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality"
         fail-build: true
         severity-cutoff: critical
         
