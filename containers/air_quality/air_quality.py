@@ -43,14 +43,14 @@ def database_call():
         city_coordinates_dataframe = pd.read_sql_query(query, conn)
 
     city_list = city_coordinates_dataframe['city'].tolist()
-    lat_list = city_coordinates_dataframe['lat'].tolist()
-    lon_list = city_coordinates_dataframe['lon'].tolist()
+    lat = city_coordinates_dataframe['lat'].tolist()
+    lon = city_coordinates_dataframe['lon'].tolist()
 
-    return city_list, lat_list, lon_list
+    return city_list, lat, lon
 
 # Calling the OpenWeatherMap Air Quality API.
 def api_call():
-    city_list, lat_list, lon_list = database_call()
+    city_list, lat, lon = database_call()
     payload_key = gcp_openweathermap_secret()
 
     # Empty lists to filled with API data.
@@ -63,7 +63,7 @@ def api_call():
 
     count = 0
     while count < 50:
-        url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat_list[count]}&lon={lon_list[count]}&appid={payload_key}"
+        url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat[count]}&lon={lon[count]}&appid={payload_key}"
         r = requests.get(url)
 
         co.append(r.json()["list"][0]["components"]["co"])
@@ -75,17 +75,24 @@ def api_call():
 
         count += 1
 
-    return city_list, co, no2, o3, so2, pm2_5, pm10
+    return city_list, lat, lon, co, no2, o3, so2, pm2_5, pm10
 
 # Creating a dataframe with the air quality data.
 def create_dataframe():
-    city_list, co, no2, o3, so2, pm2_5, pm10 = api_call()
+    city_list, lat, lon, co, no2, o3, so2, pm2_5, pm10 = api_call()
 
     # Setting the headers then zipping the lists to create a dataframe.
-    headers = ['city', 'CO', 'NO2', 'O3', 'SO2', 'PM2_5', 'PM10']
-    zipped = list(zip(city_list, co, no2, o3, so2, pm2_5, pm10))
+    headers = ['city', 'lat', 'lon', 'CO', 'NO2', 'O3', 'SO2', 'PM2_5', 'PM10']
+    zipped = list(zip(city_list, lat, lon, co, no2, o3, so2, pm2_5, pm10))
 
     air_quality_dataframe = pd.DataFrame(zipped, columns = headers)
+
+    # Creating a new column with the latitude and longitude together, this is needed for Looker Studio to plot the coordinates.
+    cols = ['lat', 'lon']
+    air_quality_dataframe['coordinates'] = air_quality_dataframe[cols].astype(str).apply(','.join, axis=1)
+
+    # Dropping the lat and lon columns.
+    air_quality_dataframe = air_quality_dataframe.drop(['lat', 'lon'], axis=1)
 
     return air_quality_dataframe
 
