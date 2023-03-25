@@ -11,11 +11,10 @@ on:
 
 jobs:
 
-  build:
-
+  build-and-scan:
     runs-on: ubuntu-latest
-
     steps:
+    
     - uses: actions/checkout@v3
     - name: Docker Login
       env:
@@ -32,9 +31,20 @@ jobs:
         docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
         docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:population
         
-
+    - name: Scan image
+      uses: anchore/scan-action@v3
+      with:
+        image: "global-data-pipeline:air_quality"
+        fail-build: true
+        severity-cutoff: critical
         
+  push-to-docker-hub:   
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    steps:
+    
     - name: Push Docker Image
+      if: needs.build-and-scan.result == 'success'
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
         docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
