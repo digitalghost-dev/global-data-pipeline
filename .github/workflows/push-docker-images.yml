@@ -25,7 +25,7 @@ jobs:
           docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
 
-  build-city-coordinates-and-push:
+  build-coordinates-and-push:
     runs-on: ubuntu-latest
     steps:
 
@@ -39,7 +39,7 @@ jobs:
           docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
 
-  build-country-statistics-and-push:
+  build-statistics-and-push:
     runs-on: ubuntu-latest
     steps:
 
@@ -53,7 +53,7 @@ jobs:
           docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
 
-  build-city-weather-and-push:
+  build-weather-and-push:
     runs-on: ubuntu-latest
     steps:
 
@@ -67,7 +67,7 @@ jobs:
           docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
 
-  build-city-population-and-push:
+  build-population-and-push:
     runs-on: ubuntu-latest
     steps:
 
