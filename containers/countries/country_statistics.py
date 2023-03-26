@@ -135,34 +135,6 @@ def human_development_index():
 
     else:
         print("Couldn't build hdi table. Error: " + str(response.status_code))
-
-# This function builds the obesity rates table.
-def obesity_rate():
-
-    url = "https://en.wikipedia.org/wiki/List_of_countries_by_obesity_rate"
-    response = requests.get(url)
-
-    # Checking if url returns a <200> status code.
-    if response.status_code == requests.codes.ok:
-        data = requests.get(url).text
-        # Creating BeautifulSoup object.
-        soup = BeautifulSoup(data, 'html.parser')
-        table = soup.find('table', class_='static-row-numbers')
-
-        # Using Pandas to read the HTML table.
-        obesity_dataframe = pd.read_html(str(table))[0]
-
-        # Updating column names.
-        obesity_dataframe.columns = range(obesity_dataframe.shape[1])
-        mapping = {0: 'country', 1: 'obesity_rate_percentage'}
-        obesity_dataframe = obesity_dataframe.rename(columns=mapping)
-
-        # Removing whitespace.
-        obesity_dataframe['country'] = obesity_dataframe['country'].str.strip()
-        
-        return obesity_dataframe
-    else:
-        print("Couldn't build obesity rates table. Error: " + str(response.status_code))
     
 # This function builds the unemployment rates table.
 def unemployment_rate():
@@ -204,17 +176,16 @@ def load_dataframes(DATABASE_URI):
     fertility_dataframe = fertility_rate()
     unemployment_dataframe = unemployment_rate()
     homicide_dataframe = homicide_rate()
-    obesity_dataframe = obesity_rate()
     hdi_dataframe = human_development_index()
 
     engine = create_engine(DATABASE_URI)
 
-    dataframes = [fertility_dataframe, unemployment_dataframe, homicide_dataframe, obesity_dataframe, hdi_dataframe]
-    tables = ['gd.fertility', 'gd.unemployment', 'gd.homicide', 'gd.obesity', 'gd.hdi']
+    dataframes = [fertility_dataframe, unemployment_dataframe, homicide_dataframe, hdi_dataframe]
+    tables = ['gd.fertility', 'gd.unemployment', 'gd.homicide', 'gd.hdi']
     
     # Looping through to upload both dataframes.
     count = 0
-    while count < 5:
+    while count < 4:
         # Sending city_dataframe to table in PostgreSQL.
         dataframes[count].to_sql(tables[count], engine, if_exists='replace', index=False)
 
