@@ -23,7 +23,7 @@ jobs:
       run: |
         docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-  build-air-quality:
+  build-air-quality-and-push:
     runs-on: ubuntu-latest
     needs: docker-login
     steps:
@@ -35,8 +35,9 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
           docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
+          docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
 
-  build-city-coordinates:
+  build-city-coordinates-and-push:
     runs-on: ubuntu-latest
     needs: docker-login
     steps:
@@ -48,8 +49,9 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
         docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
 
-  build-country-statistics:
+  build-country-statistics-and-push:
     runs-on: ubuntu-latest
     needs: docker-login
     steps:
@@ -61,8 +63,9 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
         docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
 
-  build-city-weather:
+  build-city-weather-and-push:
     runs-on: ubuntu-latest
     needs: docker-login
     steps:
@@ -74,8 +77,9 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
         docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
 
-  build-city-population:
+  build-city-population-and-push:
     runs-on: ubuntu-latest
     needs: docker-login
     steps:
@@ -87,24 +91,7 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
         docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
-
-  push-to-docker-hub:
-    runs-on: ubuntu-latest
-    needs: [build-air-quality, build-city-coordinates, build-country-statistics, build-city-weather, build-city-population]
-    steps:
-    
-    - uses: actions/checkout@v3
-    - name: Push Docker Image
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      # if: needs.build-and-scan.result == 'success'
-      run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
+        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population       
 
   # scan:
   #   runs-on: ubuntu-latest
