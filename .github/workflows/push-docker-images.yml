@@ -11,21 +11,8 @@ on:
 
 jobs:
 
-  docker-login:
-    runs-on: ubuntu-latest
-    steps:
-    
-    - uses: actions/checkout@v3
-    - name: Docker Login
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      run: |
-        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-
   build-air-quality-and-push:
     runs-on: ubuntu-latest
-    needs: docker-login
     steps:
 
     - uses: actions/checkout@v3
@@ -34,12 +21,12 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
           docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
 
   build-city-coordinates-and-push:
     runs-on: ubuntu-latest
-    needs: docker-login
     steps:
 
     - uses: actions/checkout@v3
@@ -48,12 +35,12 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
-        docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+          docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
+          docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
 
   build-country-statistics-and-push:
     runs-on: ubuntu-latest
-    needs: docker-login
     steps:
 
     - uses: actions/checkout@v3
@@ -62,12 +49,12 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
-        docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+          docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
+          docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
 
   build-city-weather-and-push:
     runs-on: ubuntu-latest
-    needs: docker-login
     steps:
 
     - uses: actions/checkout@v3
@@ -76,12 +63,12 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
-        docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+          docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
+          docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
 
   build-city-population-and-push:
     runs-on: ubuntu-latest
-    needs: docker-login
     steps:
 
     - uses: actions/checkout@v3
@@ -90,8 +77,9 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       run: |
-        docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
-        docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population       
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+          docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
+          docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population       
 
   # scan:
   #   runs-on: ubuntu-latest
