@@ -39,7 +39,11 @@ jobs:
           docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
           docker push ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
 
-  build-tatistics-and-push:
+<<<<<<< HEAD
+  build-statistics-and-push:
+=======
+  build-statistics-and-push:
+>>>>>>> 2790fcbda11cd452280d09c092d8a40a7401abc3
     runs-on: ubuntu-latest
     steps:
 
