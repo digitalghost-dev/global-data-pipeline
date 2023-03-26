@@ -61,63 +61,14 @@ def city_populations():
     else:
         print("There was a connection error: " + str(response.status_code))
 
-# Scraping a Wikipedia page that has a table of countries ordered by population.
-def country_populations():
-    url = 'https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population'
-    response = requests.get(url)
-
-    # Checking if url returns a <200> status code.
-    if response.status_code == requests.codes.ok:
-        data = requests.get(url).text
-
-        # Creating BeautifulSoup object.
-        soup = BeautifulSoup(data, 'html.parser')
-
-        # Selecting the table from the website.
-        table = soup.find('table', class_='wikitable')
-
-        # Using Pandas to read the HTML table.
-        country_dataframe = pd.read_html(str(table))[0]
-
-        # Removing rows to only return the top 31 rows.
-        extra_rows = (country_dataframe.shape[0]) - 31
-
-        # Removing the extra rows.
-        country_dataframe = country_dataframe.drop(country_dataframe.tail(extra_rows).index)
-        
-        # Dropping unwanted columns.
-        country_dataframe = country_dataframe.drop(country_dataframe.columns[3:], axis=1)
-
-        # Renaming column headers.
-        country_dataframe.columns = range(country_dataframe.shape[1])
-        mapping = {0: 'rank', 1: 'country', 2: 'population'}
-        country_dataframe = country_dataframe.rename(columns=mapping)
-
-        # Removing the first row.
-        country_dataframe = country_dataframe.tail(-1)
-
-        return country_dataframe
-
-    else:
-        print("There was a connection error: " + str(response.status_code))
-
 # Loading dataframes into the Postgres database.
 def load_population(DATABASE_URI):
     city_dataframe = city_populations()
-    country_dataframe = country_populations()
 
     engine = create_engine(DATABASE_URI)
 
-    dataframes = [city_dataframe, country_dataframe]
-    tables = ['gd.city_pop', 'gd.country_pop']
-    
-    # Looping through to upload both dataframes.
-    count = 0
-    while count < 2:
-        # Sending city_dataframe to table in PostgreSQL.
-        dataframes[count].to_sql(tables[count], engine, if_exists='replace', index=False)
-
-        count += 1
+    # Sending dataframe to table in PostgreSQL.
+    city_dataframe.to_sql('gd.city_pop', engine, if_exists='replace', index=False)
     
     print("Process completed!")
 
