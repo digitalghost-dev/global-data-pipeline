@@ -238,36 +238,8 @@ with DAG("country_statistics", default_args=default_args, schedule_interval='@we
         skip_leading_rows=1,
     )
 
-    # Obesity table tasks.
-    task_f = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage_obesity",
-        postgres_conn_id='postgres_default',
-        sql='SELECT * FROM "gd.obesity";',
-        bucket=bucket,
-        filename='obesity.csv',
-        export_format='csv',
-        gzip=False,
-        use_server_side_cursor=False,
-    )
-
-    task_g = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery_obesity",
-        gcp_conn_id='google_cloud_default',
-        bucket=bucket,
-        source_objects=['obesity.csv'],
-        source_format='CSV',
-        destination_project_dataset_table=(table + "obesity"),
-        schema_fields = [
-            {'name': 'country', 'type': 'STRING'},
-            {'name': 'obesity_rate_percentage', 'type': 'FLOAT'},
-        ],
-        create_disposition='CREATE_IF_NEEDED',
-        write_disposition='WRITE_TRUNCATE',
-        skip_leading_rows=1,
-    )
-
     # Unemployment table tasks.
-    task_h = PostgresToGCSOperator (
+    task_f = PostgresToGCSOperator (
         task_id="postgres_to_cloud_storage_unemployment",
         postgres_conn_id='postgres_default',
         sql='SELECT * FROM "gd.unemployment";',
@@ -278,7 +250,7 @@ with DAG("country_statistics", default_args=default_args, schedule_interval='@we
         use_server_side_cursor=False,
     )
 
-    task_i = GCSToBigQueryOperator (
+    task_g = GCSToBigQueryOperator (
         task_id="cloud_storage_to_bigquery_unemployment",
         gcp_conn_id='google_cloud_default',
         bucket=bucket,
@@ -296,7 +268,7 @@ with DAG("country_statistics", default_args=default_args, schedule_interval='@we
     )
 
     # HDI table tasks.
-    task_j = PostgresToGCSOperator (
+    task_h = PostgresToGCSOperator (
         task_id="postgres_to_cloud_storage_hdi",
         postgres_conn_id='postgres_default',
         sql='SELECT * FROM "gd.hdi";',
@@ -307,7 +279,7 @@ with DAG("country_statistics", default_args=default_args, schedule_interval='@we
         use_server_side_cursor=False,
     )
 
-    task_k = GCSToBigQueryOperator (
+    task_i = GCSToBigQueryOperator (
         task_id="cloud_storage_to_bigquery_hdi",
         gcp_conn_id='google_cloud_default',
         bucket=bucket,
@@ -328,7 +300,6 @@ task_a >> task_b >> task_c
 task_a >> task_d >> task_e
 task_a >> task_f >> task_g
 task_a >> task_h >> task_i
-task_a >> task_j >> task_k
 
 # population table
 with DAG("city_population", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
