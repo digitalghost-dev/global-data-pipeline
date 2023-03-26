@@ -58,11 +58,64 @@ with DAG("discord_alert", default_args=default_args, schedule_interval='0 */4 * 
 
 discord_task
 
+# air_quality table
+with DAG("air_quality", default_args=default_args, schedule_interval='@hourly', catchup=False) as dag:
+    
+    task_a = DockerOperator (
+        task_id="run_docker_container",
+        image='digitalghostdev/global-data-pipeline:air_quality',
+        command='python3 air_quality.py',
+        docker_url='tcp://docker-proxy:2375',
+        network_mode='host',
+        mounts=[
+            Mount(
+                source='/tmp/keys/keys.json',
+                target='/tmp/keys/keys.json',
+                type='bind'
+            )
+        ]
+    )
+
+    task_b = PostgresToGCSOperator (
+        task_id="postgres_to_cloud_storage",
+        postgres_conn_id='postgres_default',
+        sql='SELECT * FROM "gd.air_quality";',
+        bucket=bucket,
+        filename='air_quality.csv',
+        export_format='csv',
+        gzip=False,
+        use_server_side_cursor=False,
+    )
+
+    task_c = GCSToBigQueryOperator (
+        task_id="cloud_storage_to_bigquery",
+        gcp_conn_id='google_cloud_default',
+        bucket=bucket,
+        source_objects=['air_quality.csv'],
+        source_format='CSV',
+        destination_project_dataset_table=(table + "air_quality"),
+        schema_fields = [
+            {'name': 'city', 'type': 'STRING'},
+            {'name': 'CO', 'type': 'FLOAT'},
+            {'name': 'NO2', 'type': 'FLOAT'},
+            {'name': 'O3', 'type': 'FLOAT'},
+            {'name': 'SO2', 'type': 'FLOAT'},
+            {'name': 'PM2_5', 'type': 'FLOAT'},
+            {'name': 'PM10', 'type': 'FLOAT'},
+            {'name': 'coordinates', 'type': 'STRING'},
+        ],
+        create_disposition='CREATE_IF_NEEDED',
+        write_disposition='WRITE_TRUNCATE',
+        skip_leading_rows=1,
+    )
+
+task_a >> task_b >> task_c
+
 # coordinates table
 with DAG("city_coordinates", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
 
     task_a = DockerOperator (
-        task_id="1-run_docker_container",
+        task_id="run_docker_container",
         image='digitalghostdev/global-data-pipeline:city_coordinates',
         command='python3 city_coordinates.py',
         docker_url='tcp://docker-proxy:2375',
@@ -107,89 +160,11 @@ with DAG("city_coordinates", default_args=default_args, schedule_interval='@week
 
 task_a >> task_b >> task_c
 
-# population table
-with DAG("population", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
-
-    task_a = DockerOperator (
-        task_id="task_a",
-        image='digitalghostdev/global-data-pipeline:population',
-        command='python3 population.py',
-        docker_url='tcp://docker-proxy:2375',
-        network_mode='host',
-        mounts=[
-            Mount(
-                source='/tmp/keys/keys.json',
-                target='/tmp/keys/keys.json',
-                type='bind'
-            )
-        ]
-    )
-
-    task_b = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage_city_pop",
-        postgres_conn_id='postgres_default',
-        sql='SELECT * FROM "gd.city_pop";',
-        bucket=bucket,
-        filename='city_pop.csv',
-        export_format='csv',
-        gzip=False,
-        use_server_side_cursor=False,
-    )
-
-    task_c = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery_city_pop",
-        gcp_conn_id='google_cloud_default',
-        bucket=bucket,
-        source_objects=['city_pop.csv'],
-        source_format='CSV',
-        destination_project_dataset_table=(table + "city_pop"),
-        schema_fields = [
-            {'name': 'rank', 'type': 'INTEGER'},
-            {'name': 'city', 'type': 'STRING'},
-            {'name': 'country', 'type': 'STRING'},
-            {'name': 'population', 'type': 'BIGNUMERIC'},
-        ],
-        create_disposition='CREATE_IF_NEEDED',
-        write_disposition='WRITE_TRUNCATE',
-        skip_leading_rows=1,
-    )
-
-    task_d = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage_country_pop",
-        postgres_conn_id='postgres_default',
-        sql='SELECT * FROM "gd.country_pop";',
-        bucket=bucket,
-        filename='country_pop.csv',
-        export_format='csv',
-        gzip=False,
-        use_server_side_cursor=False,
-    )
-
-    task_e = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery_country_pop",
-        gcp_conn_id='google_cloud_default',
-        bucket=bucket,
-        source_objects=['country_pop.csv'],
-        source_format='CSV',
-        destination_project_dataset_table=(table + "country_pop"),
-        schema_fields = [
-            {'name': 'rank', 'type': 'INTEGER'},
-            {'name': 'country', 'type': 'STRING'},
-            {'name': 'population', 'type': 'BIGNUMERIC'},
-        ],
-        create_disposition='CREATE_IF_NEEDED',
-        write_disposition='WRITE_TRUNCATE',
-        skip_leading_rows=1,
-    )
-
-task_a >> task_b >> task_c
-task_a >> task_d >> task_e
-
 # country statistics table
 with DAG("country_statistics", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
 
     task_a = DockerOperator (
-        task_id="task_a",
+        task_id="run_docker_container",
         image='digitalghostdev/global-data-pipeline:country_statistics',
         command='python3 country_statistics.py',
         docker_url='tcp://docker-proxy:2375',
@@ -355,13 +330,13 @@ task_a >> task_f >> task_g
 task_a >> task_h >> task_i
 task_a >> task_j >> task_k
 
-# air_quality table
-with DAG("air_quality", default_args=default_args, schedule_interval='@hourly', catchup=False) as dag:
-    
+# population table
+with DAG("city_population", default_args=default_args, schedule_interval='@weekly', catchup=False) as dag:
+
     task_a = DockerOperator (
         task_id="run_docker_container",
-        image='digitalghostdev/global-data-pipeline:air_quality',
-        command='python3 air_quality.py',
+        image='digitalghostdev/global-data-pipeline:city_population',
+        command='python3 city_population.py',
         docker_url='tcp://docker-proxy:2375',
         network_mode='host',
         mounts=[
@@ -374,31 +349,28 @@ with DAG("air_quality", default_args=default_args, schedule_interval='@hourly', 
     )
 
     task_b = PostgresToGCSOperator (
-        task_id="postgres_to_cloud_storage",
+        task_id="postgres_to_cloud_storage_city_pop",
         postgres_conn_id='postgres_default',
-        sql='SELECT * FROM "gd.air_quality";',
+        sql='SELECT * FROM "gd.city_pop";',
         bucket=bucket,
-        filename='air_quality.csv',
+        filename='city_pop.csv',
         export_format='csv',
         gzip=False,
         use_server_side_cursor=False,
     )
 
     task_c = GCSToBigQueryOperator (
-        task_id="cloud_storage_to_bigquery",
+        task_id="cloud_storage_to_bigquery_city_pop",
         gcp_conn_id='google_cloud_default',
         bucket=bucket,
-        source_objects=['air_quality.csv'],
+        source_objects=['city_pop.csv'],
         source_format='CSV',
-        destination_project_dataset_table=(table + "air_quality"),
+        destination_project_dataset_table=(table + "city_pop"),
         schema_fields = [
+            {'name': 'rank', 'type': 'INTEGER'},
             {'name': 'city', 'type': 'STRING'},
-            {'name': 'CO', 'type': 'FLOAT'},
-            {'name': 'NO2', 'type': 'FLOAT'},
-            {'name': 'O3', 'type': 'FLOAT'},
-            {'name': 'SO2', 'type': 'FLOAT'},
-            {'name': 'PM2_5', 'type': 'FLOAT'},
-            {'name': 'PM10', 'type': 'FLOAT'},
+            {'name': 'country', 'type': 'STRING'},
+            {'name': 'population', 'type': 'BIGNUMERIC'},
         ],
         create_disposition='CREATE_IF_NEEDED',
         write_disposition='WRITE_TRUNCATE',
