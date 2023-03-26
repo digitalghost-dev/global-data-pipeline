@@ -31,7 +31,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build Docker Image (air_quality)
       run: |
-          docker build . --file containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
+          docker build . --file ./containers/air_quality/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:air_quality
 
   build-city-coordinates:
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build Docker Image (city_coordinates)
       run: |
-        docker build . --file containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
+        docker build . --file ./containers/coordinates/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_coordinates
 
   build-country-statistics:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build Docker Image (country_statistics)
       run: |
-        docker build . --file containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
+        docker build . --file ./containers/countries/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:country_statistics
 
   build-city-weather:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build Docker Image (city_weather)
       run: |
-        docker build . --file containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
+        docker build . --file ./containers/weather/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_weather
 
   build-city-population:
     runs-on: ubuntu-latest
@@ -71,7 +71,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build Docker Image (city_population)
       run: |
-        docker build . --file containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
+        docker build . --file ./containers/population/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/global-data-pipeline:city_population
 
   push-to-docker-hub:
     runs-on: ubuntu-latest
