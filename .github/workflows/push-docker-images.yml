@@ -3,7 +3,7 @@ name: Docker Image Push
 on:
   push:
     paths-ignore:
-      
+      - '.github/**'
       - 'dags/**'
       - 'README.md'
       - '.gitignore'
