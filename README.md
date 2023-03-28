@@ -13,8 +13,8 @@
 
 
 ### Important Links
-* Visualization
-* Documentation
+* [Visualization](https://lookerstudio.google.com/reporting/3710d6bb-25b2-4d64-b6e8-2889bc57c74b/page/p_cwvhb3pl4c)
+* [Documentation](https://github.com/digitalghost-dev/global-data-pipeline/wiki/Global-Data-Pipeline-Documentation)
 
 ## How the Pipeline Works
 ### Data Pipeline
@@ -22,14 +22,13 @@
 2. The Airflow services, Postgres, and Redis are ran in Docker containers.
 3. Five different Python scripts reach out to different data sources (two APIs, six Wikipedia tables) to extract, transform, and load data to the Postgres database. All scripts are packaged into Docker containers.
     * Data for the 50 most populated cities:
-        * Weather
-        * Air Quality
+        * Weather (Temperature, Humidity, Precipitation, and Wind Speed)
+        * Air Quality (CO, NO<sub>2</sub>, O<sub>2</sub>, SO<sub>2</sub>, PM2.5, PM10)
         * Population
     * Data for the 30 most populated countries:
         * Fertility rates
         * Homicide rates
         * Human Development Index
-        * Obesity reates
         * Unemployment rates
 4. The containers are ran with the `DockerOperator` and the `DiscordOperator` sends an alert to a Discord server.
 5. The `PostgresToGCSOperator` sends the table data to Googe Cloud Storage as a `.csv` file.
@@ -38,9 +37,9 @@
 
 ### DAG schedules:
 
-| city_coordinates | country_statistics | population | city_weather | air_quality | discord_alert |
-| ---------------- | ------------------ | ---------- | ------------ | ----------- | ------------- |
-| `@weekly`        | `@weekly`          | `@weekly`  | `@hourly`    | `@hourly`   | `0 */4 * * *` |
+| city_coordinates | country_statistics | city_population | city_weather | air_quality | discord_alert |
+| ---------------- | ------------------ | --------------- | ------------ | ----------- | ------------- |
+| `@weekly`        | `@weekly`          | `@weekly`       | `@hourly`    | `@hourly`   | `0 */4 * * *` |
 
 ### CI/CD
 CI/CD is setup with [GitHub Actions](https://github.com/features/actions).
