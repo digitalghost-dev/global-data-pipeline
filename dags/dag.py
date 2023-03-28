@@ -5,12 +5,19 @@ from datetime import datetime, timedelta
 from docker.types import Mount
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
+from airflow.providers.discord.operators.discord_webhook import DiscordWebhookOperator
 from airflow.providers.google.cloud.transfers.postgres_to_gcs import PostgresToGCSOperator
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
-from airflow.providers.discord.operators.discord_webhook import DiscordWebhookOperator
 
 bucket = 'global-data-storage-bucket'
 table = 'cloud-data-infrastructure.global_data_dataset.'
+
+default_args = {
+    'owner': 'Airflow',
+    'start_date': datetime(2023, 1, 1),
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
 
 def weather():
     import pandas as pd
@@ -37,15 +44,6 @@ def weather():
     return hottest_city_text
 
 hottest_city_text = weather()
-
-default_args = {
-    'owner': 'Airflow',
-    'start_date': datetime(2023, 1, 1),
-    'email': ['christian@digitalghost.dev'],
-    'email_on_failure': True,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-}
 
 # Discord notification
 with DAG("discord_alert", default_args=default_args, schedule_interval='0 */4 * * *', catchup=False) as dag:
@@ -254,9 +252,9 @@ with DAG("country_statistics", default_args=default_args, schedule_interval='@we
         task_id="cloud_storage_to_bigquery_unemployment",
         gcp_conn_id='google_cloud_default',
         bucket=bucket,
-        source_objects=['hdi.csv'],
+        source_objects=['unemployment.csv'],
         source_format='CSV',
-        destination_project_dataset_table=(table + "hdi"),
+        destination_project_dataset_table=(table + "unemployment"),
         schema_fields = [
             {'name': 'country', 'type': 'STRING'},
             {'name': 'unemployment_rate', 'type': 'FLOAT'},
