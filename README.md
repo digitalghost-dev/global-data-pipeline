@@ -1,4 +1,5 @@
 # Global Data Pipeline with Docker Compose, PostgreSQL, Airflow and Looker Studio
+**This project is now archived and now longer being actively developed. My current project is a [Premier League Data Pipeline](https://github.com/digitalghost-dev/premier-league).**
 
 <div>
     <img alt="Version" src="https://img.shields.io/badge/Project Number-3-orange.svg?cacheSeconds=2592000" />
@@ -14,7 +15,6 @@
 
 ### Important Links
 * [Visualization](https://lookerstudio.google.com/reporting/3710d6bb-25b2-4d64-b6e8-2889bc57c74b/page/p_cwvhb3pl4c)
-* [Documentation](https://github.com/digitalghost-dev/global-data-pipeline/wiki/Global-Data-Pipeline-Documentation)
 
 ## How the Pipeline Works
 ### Data Pipeline
